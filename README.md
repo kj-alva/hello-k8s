@@ -16,10 +16,11 @@ Setup:
 
     curl http://hello-world.example.com/env/hello-world/
 
-TODO:
-ClusterRole
-ClusterRoleBinding
-HorizontalPodAutoscaler
-cert-manager
-Update Ingress to Konghq
-Setup Hashicorp Vault and Integrate with Vault
+TODO:\n
+ClusterRole\n
+ClusterRoleBinding\n
+HorizontalPodAutoscaler\n
+cert-manager\n
+Add Istio Service Mesh\n
+Update Ingress to Konghq\n
+Setup Hashicorp Vault and Integrate with Vault\n
