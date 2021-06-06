@@ -1,0 +1,170 @@
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: hello-world
+  labels:
+    name: hello-world
+    app.kubernetes.io/instance: hello-world
+    app.kubernetes.io/version: 1.0.0
+    app.kubernetes.io/part-of: hello-world
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  labels:
+    name: hello-world-sa
+    app.kubernetes.io/instance: hello-world
+    app.kubernetes.io/version: 1.0.0
+    app.kubernetes.io/part-of: hello-world
+  # annotations:
+  #     eks.amazonaws.com/role-arn: arn:aws:iam::<account-id>:role/hello-world-iam-role
+  name: hello-world-sa
+  namespace: hello-world
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: hello-world-dp
+  namespace: hello-world
+  labels:
+    name: hello-world-dp
+    app.kubernetes.io/instance: hello-world
+    app.kubernetes.io/version: 1.0.0
+    app.kubernetes.io/part-of: hello-world
+spec:
+  replicas: 1
+  revisionHistoryLimit: 10
+  selector:
+    matchLabels:
+      app: hello-world
+      app.kubernetes.io/version: 1.0.0
+      app.kubernetes.io/part-of: hello-world
+      app.kubernetes.io/instance: hello-world
+  strategy:
+    rollingUpdate:
+      maxSurge: 25%
+      maxUnavailable: 25%
+    type: RollingUpdate
+  template:
+    metadata:
+      labels:
+        app: hello-world
+        app.kubernetes.io/version: 1.0.0
+        app.kubernetes.io/part-of: hello-world
+        app.kubernetes.io/instance: hello-world
+      # annotations:
+      #   iam.amazonaws.com/role: arn:aws:iam::<account-id>:role/hello-world-iam-role
+    spec:
+      containers:
+      - image: paulbouwer/hello-kubernetes:1.10
+        imagePullPolicy: Always
+        name: hello-world
+        ports:
+          - name: http
+            containerPort: 8080
+            protocol: TCP
+        livenessProbe:
+            httpGet:
+              path: /
+              port: http
+            failureThreshold: 2
+            initialDelaySeconds: 1
+            periodSeconds: 2
+            successThreshold: 1
+            timeoutSeconds: 5
+        readinessProbe:
+            httpGet:
+              path: /
+              port: http
+            failureThreshold: 2
+            initialDelaySeconds: 2
+            periodSeconds: 2
+            successThreshold: 1
+            timeoutSeconds: 5
+        resources: {}
+        securityContext:
+          capabilities:
+            drop:
+            - ALL
+          # readOnlyRootFilesystem: true
+          allowPrivilegeEscalation: false
+          runAsNonRoot: true
+          runAsUser: 1000
+          runAsGroup: 1000
+        terminationMessagePath: /dev/termination-log
+        terminationMessagePolicy: File
+        # affinity:
+        #   podAntiAffinity:
+        #     requiredDuringSchedulingIgnoredDuringExecution:
+        #     - labelSelector:
+        #         matchExpressions:
+        #           - key: app
+        #             operator: In
+        #             values:
+        #               - "hello-world"
+        #       topologyKey: "kubernetes.io/hostname"
+      dnsPolicy: ClusterFirst
+      restartPolicy: Always
+      serviceAccountName: hello-world-sa
+      terminationGracePeriodSeconds: 30
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: hello-world-svc
+  namespace: hello-world
+  labels:
+    app: hellow-world
+    app.kubernetes.io/version: 1.0.0
+    app.kubernetes.io/part-of: hello-world
+    app.kubernetes.io/instance: hello-world
+spec:
+  ports:
+    - name: http
+      port: 80
+      protocol: TCP
+      targetPort: http
+      #nodePort: 30080
+  selector:
+    app: hello-world
+    app.kubernetes.io/version: 1.0.0
+    app.kubernetes.io/part-of: hello-world
+    app.kubernetes.io/instance: hello-world
+  sessionAffinity: None
+  type: ClusterIP
+  #type: NodePort
+status:
+  loadBalancer: {}
+---  
+apiVersion: networking.k8s.io/v1beta1
+kind: Ingress
+metadata:
+  name: hello-world-api
+  namespace: hello-world
+  annotations:
+    #cert-manager.io/cluster-issuer: default-issuer
+    kubernetes.io/ingress.class: "nginx"
+    nginx.ingress.kubernetes.io/rewrite-target: /$1
+    nginx.ingress.kubernetes.io/configuration-snippet: |
+      rewrite ^(/env/hello-world)$ $1 redirect;
+  labels:
+    name: hello-world-api
+    app.kubernetes.io/instance: hello-world
+    app.kubernetes.io/version: 1.0.0
+    app.kubernetes.io/part-of: hello-world
+spec:
+  rules:
+  - host: hello-world.example.com
+    http:
+      paths:
+      - backend:
+          serviceName: hello-world-svc
+          servicePort: 80
+        path: /env/hello-world?(.*)
+  # tls:
+  # - hosts:
+  #   - hello-world.example.com
+  #   secretName: tls-secret
+
+
