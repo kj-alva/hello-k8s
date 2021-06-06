@@ -33,7 +33,7 @@ metadata:
     app.kubernetes.io/version: 1.0.0
     app.kubernetes.io/part-of: hello-world
 spec:
-  replicas: 1
+  replicas: 3
   revisionHistoryLimit: 10
   selector:
     matchLabels:
@@ -94,6 +94,8 @@ spec:
           runAsGroup: 1000
         terminationMessagePath: /dev/termination-log
         terminationMessagePolicy: File
+        # Use affinity to distribute pods across availability zone if worker nodes are setup across az's.
+        # PodAnitAffinity is use to distribute pods across worker nodes to avoid unavailability if worker node is terminated.
         # affinity:
         #   podAntiAffinity:
         #     requiredDuringSchedulingIgnoredDuringExecution:
@@ -166,5 +168,81 @@ spec:
   # - hosts:
   #   - hello-world.example.com
   #   secretName: tls-secret
+---
+# apiVersion: rbac.authorization.k8s.io/v1beta1
+# kind: ClusterRole
+# metadata:
+#   name: hello-world-cr
+# rules:
+# - apiGroups:
+#   - ""
+#   resources:
+#   - endpoints
+#   - nodes
+#   - pods
+#   - secrets
+#   verbs:
+#   - list
+#   - watch
+# - apiGroups:
+#   - ""
+#   resources:
+#   - nodes
+#   verbs:
+#   - get
+# - apiGroups:
+#   - ""
+#   resources:
+#   - services
+#   verbs:
+#   - get
+#   - list
+#   - watch
+# - apiGroups:
+#   - networking.k8s.io
+#   - extensions
+#   - networking.internal.knative.dev
+#   resources:
+#   - ingresses
+#   verbs:
+#   - get
+#   - list
+#   - watch
+# - apiGroups:
+#   - ""
+#   resources:
+#   - events
+#   verbs:
+#   - create
+#   - patch
+# - apiGroups:
+#   - networking.k8s.io
+#   - extensions
+#   - networking.internal.knative.dev
+#   resources:
+#   - ingresses/status
+#   verbs:
+#   - update
+# - apiGroups:
+#   - ""
+#   resources:
+#   - configmaps
+#   verbs:
+#   - create
+#   - get
+#   - update
+---
+# apiVersion: rbac.authorization.k8s.io/v1beta1
+# kind: ClusterRoleBinding
+# metadata:
+#   name: hello-world-clusterrole-binding
+# roleRef:
+#   apiGroup: rbac.authorization.k8s.io
+#   kind: ClusterRole
+#   name: hello-world-cr
+# subjects:
+# - kind: ServiceAccount
+#   name: hello-world-sa
+#   namespace: hello-world
 
 
